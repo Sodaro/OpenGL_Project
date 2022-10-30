@@ -31,8 +31,8 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
     {
         std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" << std::endl;
     }
-    const char* vShaderCode = vertexCode.c_str();
-    const char* fShaderCode = fragmentCode.c_str();
+    const char* vertex_data = vertexCode.c_str();
+    const char* fragment_data = fragmentCode.c_str();
 
     // 2. compile shaders
     unsigned int vertex, fragment;
@@ -41,7 +41,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
 
     // vertex Shader
     vertex = glCreateShader(GL_VERTEX_SHADER);
-    glShaderSource(vertex, 1, &vShaderCode, NULL);
+    glShaderSource(vertex, 1, &vertex_data, NULL);
     glCompileShader(vertex);
     // print compile errors if any
     glGetShaderiv(vertex, GL_COMPILE_STATUS, &success);
@@ -53,7 +53,7 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
 
     // fragment Shader
     fragment = glCreateShader(GL_FRAGMENT_SHADER);
-    glShaderSource(fragment, 1, &vShaderCode, NULL);
+    glShaderSource(fragment, 1, &fragment_data, NULL);
     glCompileShader(fragment);
     // print compile errors if any
     glGetShaderiv(fragment, GL_COMPILE_STATUS, &success);
