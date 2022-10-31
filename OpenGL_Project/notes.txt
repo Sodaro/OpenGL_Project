@@ -1,6 +1,0 @@
-uniform: global variable
-	can be found using glGetUniformLocation 
-	can be updated using glUniform, nf, i, ui, fv
-
-finding a uniform can be done without "using" the shader program first
-updating the uniform can only be done after using the shader program

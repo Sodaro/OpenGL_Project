@@ -1,68 +1,35 @@
 #define GLFW_INCLUDE_NONE
+#define STB_IMAGE_IMPLEMENTATION
 #include <GLFW/glfw3.h>
 #include <GL/glew.h>
+#include <stb_image.h>
 #include <iostream>
 #include <string>
 #include "Shader.h"
 
-//enum SHADER_TYPE { FRAGMENT = GL_FRAGMENT_SHADER, VERTEX = GL_VERTEX_SHADER};
+void processInput(GLFWwindow* window);
 
-//
-//std::string read_file(const char* filepath)
-//{
-//    // r: readonly; t: text file
-//    FILE* file;
-//    errno_t err;
-//
-//    if ((err = fopen_s(&file, filepath, "rt")) != 0)
-//    {
-//        return nullptr;
-//    }
-//
-//    // go to end of file
-//    fseek(file, 0, SEEK_END);
-//
-//    // length of file in bytes
-//    unsigned long length = ftell(file);
-//    char* data = new char[length + 1];
-//
-//    // set everything to 0
-//    memset(data, 0, length + 1);
-//
-//    // go back to beginning of file
-//    fseek(file, 0, SEEK_SET);
-//
-//    fread(data, 1, length, file);
-//    fclose(file);
-//
-//    // copy data to string
-//    std::string result(data);
-//    delete[] data;
-//    return result;
-//}
+float mix_value = 0.2f;
 
 int main()
 {
-    float rect_vertices[] = {
-        0.5f,  0.5f, 0.0f,  // top right
-        0.5f, -0.5f, 0.0f,  // bottom right
-        -0.5f, -0.5f, 0.0f,  // bottom left
-        -0.5f,  0.5f, 0.0f   // top left 
+    float vertices[] = {
+        // positions          // colors           // texture coords
+         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
+         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
+        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
     };
     unsigned int rect_indices[] = {  // note that we start from 0!
         0, 1, 3,   // first triangle
         1, 2, 3    // second triangle
     };
 
-    float triangle_vertices[] = {
-        // positions         // colors
-         0.25f, -0.25f, 0.0f,  0.0f, 1.0f, 1.0f,   // bottom right
-        -0.25f, -0.25f, 0.0f,  1.0f, 0.0, 1.0f,   // bottom left
-         0.0f,  0.25f, 0.0f,  1.0f, 1.0f, 0.0f    // top 
-    };
-
-    unsigned int triangle_indices[] = {  // note that we start from 0!
-        0, 1, 2,   // first triangle
+    float texture_coordinates[] = {
+        // positions
+         0.25f, -0.25f, 0.0f,
+        -0.25f, -0.25f, 0.0f,
+         0.0f,  0.25f, 0.0f
     };
 
     glfwInit();
@@ -81,55 +48,118 @@ int main()
 
     glewInit();
 
+    stbi_set_flip_vertically_on_load(true);
+
     Shader test("./test.vert", "./test.frag");
+    Shader texture_shader("./texture_sh.vert", "./texture_sh.frag");
 
-    unsigned int vertex_array_obj, vertex_buffer_obj, element_buffer_obj;
-    glGenBuffers(1, &vertex_buffer_obj); //generate a buffer ID
-    glGenBuffers(1, &element_buffer_obj); //generate a buffer ID
-    glGenVertexArrays(1, &vertex_array_obj);
+    unsigned int VAO, VBO, EBO;
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO); //generate a buffer ID
+    glGenBuffers(1, &EBO); //generate a buffer ID
 
-    glBindVertexArray(vertex_array_obj);
+    glBindVertexArray(VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer_obj); //binds buffer, any buffer calls will affect the currently bound buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(triangle_vertices), triangle_vertices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, VBO); //binds buffer, any buffer calls will affect the currently bound buffer
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, element_buffer_obj);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(triangle_indices), triangle_indices, GL_STATIC_DRAW);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rect_indices), rect_indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
     glEnableVertexAttribArray(1);
+    
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
-    glBindVertexArray(vertex_array_obj);
+    unsigned int texture1, texture2;
+    glGenTextures(1, &texture1);
+    glBindTexture(GL_TEXTURE_2D, texture1); //subsequent texture commands will affect bound texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    float target_time = 2;
-    float timer = 0;
-    float delta = 0;
-    float prev_time = 0;
-    float a[4] = { 1,0,1,1 };
-    float b[4] = { 0,1,1,1 };
+    int width, height, nr_channels;
+    unsigned char* pixel_data = stbi_load("container.jpg", &width, &height, &nr_channels, 0);
+    if (pixel_data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixel_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "failed to load texture data" << std::endl;
+        return 1;
+    }
+    stbi_image_free(pixel_data);
+
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2); //subsequent texture commands will affect bound texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    pixel_data = stbi_load("bloodtrail.png", &width, &height, &nr_channels, 0);
+    if (pixel_data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "failed to load texture data" << std::endl;
+        return 1;
+    }
+    stbi_image_free(pixel_data);
+
+    texture_shader.use();
+    texture_shader.setInt("texture1", 0);
+    texture_shader.setInt("texture2", 1);
 
     while (!glfwWindowShouldClose(window))
     {
-        glfwSwapBuffers(window);
-        glfwPollEvents();
+        processInput(window);
+
         glClearColor(0.0f, 0.0f, 0.0f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        float time_value = glfwGetTime();
-        delta = time_value - prev_time;
-        timer += delta;
-        prev_time = time_value;
 
-        test.setFloat("xOffset", cos(time_value) * 0.5);
-        test.setFloat("yOffset", sin(time_value) * 0.5);
-        test.setFloat("sizeMod", (sin(time_value) + 2)*0.5);
-        test.use();
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
 
-        glBindVertexArray(vertex_array_obj);
+        texture_shader.setFloat("mixValue", mix_value);
+        texture_shader.use();
+        glBindVertexArray(VAO);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-        glBindVertexArray(vertex_array_obj);
+
+        glBindVertexArray(VAO);
+
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
     return 0;
+}
+
+void processInput(GLFWwindow* window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        mix_value += 0.001f; // change this value accordingly (might be too slow or too fast based on system hardware)
+        if (mix_value >= 1.0f)
+            mix_value = 1.0f;
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        mix_value -= 0.001f; // change this value accordingly (might be too slow or too fast based on system hardware)
+        if (mix_value <= 0.0f)
+            mix_value = 0.0f;
+    }
 }
