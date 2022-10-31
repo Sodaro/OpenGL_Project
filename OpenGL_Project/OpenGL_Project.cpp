@@ -56,9 +56,9 @@ int main()
 
     float triangle_vertices[] = {
         // positions         // colors
-         0.5f, -0.5f, 0.0f,  1.0f, 0.0f, 0.0f,   // bottom right
-        -0.5f, -0.5f, 0.0f,  0.0f, 1.0f, 0.0f,   // bottom left
-         0.0f,  0.5f, 0.0f,  0.0f, 0.0f, 1.0f    // top 
+         0.25f, -0.25f, 0.0f,  0.0f, 1.0f, 1.0f,   // bottom right
+        -0.25f, -0.25f, 0.0f,  1.0f, 0.0, 1.0f,   // bottom left
+         0.0f,  0.25f, 0.0f,  1.0f, 1.0f, 0.0f    // top 
     };
 
     unsigned int triangle_indices[] = {  // note that we start from 0!
@@ -80,18 +80,6 @@ int main()
     glfwMakeContextCurrent(window);
 
     glewInit();
-
-    //unsigned int vertex_shader, fragment_shader;
-    //vertex_shader = get_compiled_shader("./test.vert", SHADER_TYPE::VERTEX);
-    //fragment_shader = get_compiled_shader("./test.frag", SHADER_TYPE::FRAGMENT);
-
-    //unsigned int shader_program;
-    //shader_program = glCreateProgram();
-    //glAttachShader(shader_program, vertex_shader);
-    //glAttachShader(shader_program, fragment_shader);
-    //glLinkProgram(shader_program);
-    //if (!test_program(shader_program))
-    //    return 1;
 
     Shader test("./test.vert", "./test.frag");
 
@@ -116,12 +104,6 @@ int main()
 
     glBindVertexArray(vertex_array_obj);
 
-   
-
-    //glDeleteShader(vertex_shader);
-    //glDeleteShader(fragment_shader);
-
-
     float target_time = 2;
     float timer = 0;
     float delta = 0;
@@ -133,32 +115,21 @@ int main()
     {
         glfwSwapBuffers(window);
         glfwPollEvents();
+        glClearColor(0.0f, 0.0f, 0.0f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         float time_value = glfwGetTime();
         delta = time_value - prev_time;
         timer += delta;
         prev_time = time_value;
 
-
-        //int vertex_color_location = glGetUniformLocation(shader_program, "ourColor"); //gets uniform variable
+        test.setFloat("xOffset", cos(time_value) * 0.5);
+        test.setFloat("yOffset", sin(time_value) * 0.5);
+        test.setFloat("sizeMod", (sin(time_value) + 2)*0.5);
         test.use();
-        
-        //if (timer <= target_time)
-        //{
-        //    test.setVec4("color_a", a[0], a[1], a[2], a[3]);
-        //    test.setVec4("color_b", b[0], b[1], b[2], b[3]);
-        //    test.setFloat("lerp_value", timer / target_time);
-        //}
-        //else
-        //{
-        //    std::swap(a, b);
-        //    timer = 0;
-        //}
+
         glBindVertexArray(vertex_array_obj);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(vertex_array_obj);
     }
-
-
-
     return 0;
 }
