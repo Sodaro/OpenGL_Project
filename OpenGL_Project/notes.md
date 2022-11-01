@@ -27,6 +27,9 @@ TEXTURE FUNCTIONS:
 
 VECTORS:
 
+    unit vector
+        n^ = v¯/ ||v¯||
+
     dot = v¯ ⋅ k¯ = ||v¯|| ⋅ ||k¯|| ⋅ cosθ
     or component wise multiplication where results are added together
     dot = v.x * k.x + v.y * k.y + v.z * k.z

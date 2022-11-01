@@ -2,6 +2,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <GLFW/glfw3.h>
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <stb_image.h>
 #include <iostream>
 #include <string>
@@ -11,25 +14,44 @@ void processInput(GLFWwindow* window);
 
 float mix_value = 0.2f;
 
+unsigned int create_texture(const char* path, bool clamp_to_edge, GLint internal_format, GLenum format)
+{
+    unsigned int texture;
+    GLenum param = clamp_to_edge ? GL_CLAMP_TO_EDGE : GL_REPEAT;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture); //subsequent texture commands will affect bound texture
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, param);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, param);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    int width, height, nr_channels;
+    unsigned char* pixel_data = stbi_load(path, &width, &height, &nr_channels, 0);
+    if (pixel_data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, internal_format, width, height, 0, format, GL_UNSIGNED_BYTE, pixel_data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "failed to load texture data" << std::endl;
+        return 1;
+    }
+    stbi_image_free(pixel_data);
+    return texture;
+}
+
 int main()
 {
     float vertices[] = {
         // positions          // colors           // texture coords
-         0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   1.0f, 1.0f,   // top right
-         0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   1.0f, 0.0f,   // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // bottom left
-        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, 1.0f    // top left 
+         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 1.0f,   // top right
+         0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   1.0f, 0.0f,   // bottom right
+        -0.5f, -0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 0.0f,   // bottom left
+        -0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 1.0f,   0.0f, 1.0f    // top left 
     };
     unsigned int rect_indices[] = {  // note that we start from 0!
         0, 1, 3,   // first triangle
         1, 2, 3    // second triangle
-    };
-
-    float texture_coordinates[] = {
-        // positions
-         0.25f, -0.25f, 0.0f,
-        -0.25f, -0.25f, 0.0f,
-         0.0f,  0.25f, 0.0f
     };
 
     glfwInit();
@@ -49,8 +71,6 @@ int main()
     glewInit();
 
     stbi_set_flip_vertically_on_load(true);
-
-    Shader test("./test.vert", "./test.frag");
     Shader texture_shader("./texture_sh.vert", "./texture_sh.frag");
 
     unsigned int VAO, VBO, EBO;
@@ -76,49 +96,19 @@ int main()
     glEnableVertexAttribArray(2);
 
     unsigned int texture1, texture2;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1); //subsequent texture commands will affect bound texture
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    int width, height, nr_channels;
-    unsigned char* pixel_data = stbi_load("container.jpg", &width, &height, &nr_channels, 0);
-    if (pixel_data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixel_data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "failed to load texture data" << std::endl;
-        return 1;
-    }
-    stbi_image_free(pixel_data);
-
-    glGenTextures(1, &texture2);
-    glBindTexture(GL_TEXTURE_2D, texture2); //subsequent texture commands will affect bound texture
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    pixel_data = stbi_load("bloodtrail.png", &width, &height, &nr_channels, 0);
-    if (pixel_data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "failed to load texture data" << std::endl;
-        return 1;
-    }
-    stbi_image_free(pixel_data);
+    texture1 = create_texture("assets/container.jpg", true, GL_RGB, GL_RGB);
+    texture2 = create_texture("assets/bloodtrail.png", false, GL_RGBA, GL_RGBA);
 
     texture_shader.use();
     texture_shader.setInt("texture1", 0);
     texture_shader.setInt("texture2", 1);
+
+    glm::vec4 vec(1.0f, 0.0f, 0.0f, 1.0f);
+    glm::mat4 trans = glm::mat4(1.0f);
+    trans = glm::translate(trans, glm::vec3(1.0f, 1.0f, 0.0f));
+    vec = trans * vec;
+    std::cout << vec.x << " " << vec.y << vec.z << std::endl;
 
     while (!glfwWindowShouldClose(window))
     {
@@ -129,6 +119,7 @@ int main()
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, texture1);
+
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, texture2);
 
