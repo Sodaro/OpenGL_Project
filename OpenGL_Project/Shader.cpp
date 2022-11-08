@@ -1,6 +1,9 @@
 #include "Shader.h"
 #include "GL/glew.h"
 #include "GLFW/glfw3.h"
+#include <glm/gtc/type_ptr.hpp>
+
+
 Shader::Shader(const char* vertexPath, const char* fragmentPath)
 {
     // 1. retrieve the vertex/fragment source code from filePath
@@ -104,4 +107,9 @@ void Shader::setFloat(const std::string& name, float value) const
 void Shader::setVec4(const std::string& name, float x, float y, float z, float w) const
 {
     glUniform4f(glGetUniformLocation(ID, name.c_str()), x, y, z, w);
+}
+
+void Shader::setUniformMat4fv(const std::string& name, int count, bool transpose, const glm::mat4& value) const
+{
+    glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), count, transpose, glm::value_ptr(value));
 }
