@@ -66,4 +66,4 @@ matrix-vector
     non-uniform scale = scaling factor not same for each axis
     uniform scale = scale equal on all axis
 
-    Translation
+glEnable(GL_DEPTH) for depth buffer checks
