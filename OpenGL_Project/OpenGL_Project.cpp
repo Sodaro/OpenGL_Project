@@ -9,6 +9,7 @@
 #include <iostream>
 #include <string>
 #include <map>
+#include <vector>
 #include "Shader.h"
 
 const int forward_keys[2] = { GLFW_KEY_UP, GLFW_KEY_W };
