@@ -20,7 +20,6 @@ const int left_keys[2] = { GLFW_KEY_LEFT, GLFW_KEY_A };
 const int view_width = 800;
 const int view_height = 600;
 
-
 struct Input
 {
     float horizontal = 0;

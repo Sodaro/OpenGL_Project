@@ -4,14 +4,14 @@
 #include <assimp/scene.h>
 #include "Mesh.h"
 
-unsigned int TextureFromFile(const char* path, const std::string& directory, bool gamma = false);
+unsigned int texture_from_file(const char* path, const std::string& directory, bool gamma = false);
 
 class Model
 {
 public:
     Model(const char* path)
     {
-        loadModel(path);
+        load_model(path);
     }
     void Draw(Shader& shader);
 private:
@@ -19,9 +19,9 @@ private:
     std::vector<Mesh> meshes;
     std::string directory;
 
-    void loadModel(std::string path);
-    void processNode(aiNode* node, const aiScene* scene);
-    Mesh processMesh(aiMesh* mesh, const aiScene* scene);
-    std::vector<Texture> loadMaterialTextures(aiMaterial* mat, aiTextureType type,
+    void load_model(std::string path);
+    void process_node(aiNode* node, const aiScene* scene);
+    Mesh process_mesh(aiMesh* mesh, const aiScene* scene);
+    std::vector<Texture> load_material_textures(aiMaterial* mat, aiTextureType type,
         std::string typeName);
 };
