@@ -11,11 +11,15 @@
 #include <map>
 #include <vector>
 #include "Shader.h"
+#include "Model.h"
 
 const int forward_keys[2] = { GLFW_KEY_UP, GLFW_KEY_W };
 const int back_keys[2] = { GLFW_KEY_DOWN, GLFW_KEY_S };
 const int right_keys[2] = { GLFW_KEY_RIGHT, GLFW_KEY_D};
 const int left_keys[2] = { GLFW_KEY_LEFT, GLFW_KEY_A };
+const int view_width = 800;
+const int view_height = 600;
+
 
 struct Input
 {
@@ -23,9 +27,16 @@ struct Input
     float vertical = 0;
 };
 
-void processInput(GLFWwindow* window, Input& input);
+void process_input(GLFWwindow* window, Input& input)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window, true);
 
-float mix_value = 0.2f;
+    input.vertical = (glfwGetKey(window, forward_keys[0]) | glfwGetKey(window, forward_keys[1])) - 
+        (glfwGetKey(window, back_keys[0]) | glfwGetKey(window, back_keys[1]));
+    input.horizontal = (glfwGetKey(window, right_keys[0]) | glfwGetKey(window, right_keys[1])) - 
+        (glfwGetKey(window, left_keys[0]) | glfwGetKey(window, left_keys[1]));
+}
 
 unsigned int create_texture(const char* path, bool clamp_to_edge, GLint internal_format, GLenum format)
 {
@@ -59,80 +70,6 @@ unsigned int create_texture(const char* path, bool clamp_to_edge, GLint internal
 
 int main()
 {
-    int view_width = 800;
-    int view_height = 600;
-    float vertices[] = {
-         // positions          // texture coords
-         0.5f,  0.5f, 0.0f,   1.0f, 1.0f, // top right
-         0.5f, -0.5f, 0.0f,   1.0f, 0.0f, // bottom right
-        -0.5f, -0.5f, 0.0f,   0.0f, 0.0f, // bottom left
-        -0.5f,  0.5f, 0.0f,   0.0f, 1.0f  // top left 
-    };
-
-
-    unsigned int rect_indices[] = {  // note that we start from 0!
-        0, 1, 3,   // first triangle
-        1, 2, 3    // second triangle
-    };
-
-    float cube_vertices[] = {
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-     0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-     0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
-
-    // world space positions of our cubes
-    glm::vec3 cubePositions[] = {
-        glm::vec3(0.0f,  -0.0f,  0.0f),
-        glm::vec3(2.0f,  -5.0f, -15.0f),
-        glm::vec3(-1.5f, -7.2f, -2.5f),
-        glm::vec3(-3.8f, -7.0f, -12.3f),
-        glm::vec3(2.4f, -8.4f, -3.5f),
-        glm::vec3(-1.7f,  -3.0f, -7.5f),
-        glm::vec3(1.3f, -9.0f, -2.5f),
-        glm::vec3(1.5f,  -2.0f, -2.5f),
-        glm::vec3(1.5f,  -0.2f, -1.5f),
-        glm::vec3(-1.3f,  -1.0f, -1.5f)
-    };
-
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -149,129 +86,108 @@ int main()
 
     glewInit();
 
-    stbi_set_flip_vertically_on_load(true);
+    stbi_set_flip_vertically_on_load(true); //flip textures, y is inverted
     glEnable(GL_DEPTH_TEST);
+    
+    Shader monkey_shader("./lighting_sh.vert", "./lighting_sh.frag");
+    Shader light_source_shader("./test.vert", "./light_source_sh.frag");
+    Model our_model("./assets/monkey.obj");
 
-    Shader texture_shader("./texture_sh.vert", "./texture_sh.frag");
-
-    unsigned int VAO, VBO, EBO;
+    unsigned int VAO, VBO, EBO, light_source_VAO;
     glGenVertexArrays(1, &VAO);
+    glGenVertexArrays(1, &light_source_VAO);
     glGenBuffers(1, &VBO); //generate a buffer ID
-    glGenBuffers(1, &EBO); //generate a buffer ID
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
+    glBindVertexArray(light_source_VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO); //binds buffer, any buffer calls will affect the currently bound buffer
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cube_vertices), cube_vertices, GL_STATIC_DRAW);
 
-    //glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-    //glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(rect_indices), rect_indices, GL_STATIC_DRAW);
-
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3*sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-    unsigned int texture1, texture2;
-    texture1 = create_texture("assets/container.jpg", true, GL_RGB, GL_RGB);
-    texture2 = create_texture("assets/bloodtrail.png", false, GL_RGBA, GL_RGBA);
-
-    texture_shader.use();
-    texture_shader.setInt("texture1", 0);
-    texture_shader.setInt("texture2", 1);
+    monkey_shader.use();
+    monkey_shader.set_vec3("objectColor", 1.0f, 1.0f, 1.0f);
+    monkey_shader.set_vec3("lightColor", 1.0f, 1.0f, 1.0f);
 
     float time, previous_time, delta;
     time = previous_time = delta = 0;
 
-    float rotation = 0.f;
+    const glm::vec3 world_up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
-
-    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
-    glm::vec3 cameraTarget = glm::vec3(0.0f, 0.0f, 0.0f); //look at world origin
-
-    glm::vec3 cameraForward = glm::normalize(cameraPos - cameraTarget); //actually looks in opposite direction
-    glm::vec3 cameraRight = glm::normalize(glm::cross(up, cameraForward));
-    glm::vec3 cameraUp = glm::normalize(glm::cross(cameraRight, cameraForward));
+    glm::vec3 camera_pos = glm::vec3(0.0f, 0.0f, 3.0f);
+    glm::vec3 camera_target = glm::vec3(0.0f, 0.0f, 0.0f); //look at world origin
+    glm::vec3 camera_forward = glm::normalize(camera_pos - camera_target); //actually looks in opposite direction
+    glm::vec3 camera_right = glm::normalize(glm::cross(world_up, camera_forward));
+    glm::vec3 camera_up = glm::normalize(glm::cross(camera_right, camera_forward));
 
     Input input;
-
-    const float camera_pitch = 1.f;
-    float camera_yaw = 0.f;
     const float rotation_speed = 45.f;
     const float movement_speed = 5.f;
-
+    const float camera_pitch = 1.f;
+    const float fov = 90;
+    float camera_yaw = 0.f;
+    
+    glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
     while (!glfwWindowShouldClose(window))
     {
-        processInput(window, input);
+        process_input(window, input);
 
         glClearColor(0.0f, 0.0f, 0.0f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
         time = glfwGetTime();
+
         delta = time - previous_time;
         previous_time = time;
 
-        float fov = 90;
+        
         glm::mat4 model = glm::mat4(1.0f);
         glm::mat4 view = glm::mat4(1.0f);
-        glm::mat4 projection = glm::mat4(1.0f);
-
-        model = glm::rotate(model, glm::radians(-55.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        glm::mat4 projection = glm::mat4(1.0f); 
         
-        cameraPos += input.vertical * cameraForward * delta * movement_speed;
+        camera_pos += input.vertical * camera_forward * delta * movement_speed;
         camera_yaw += -input.horizontal * delta * rotation_speed;
 
-        cameraForward = glm::normalize(glm::vec3(
+        camera_forward = glm::normalize(glm::vec3(
             cos(glm::radians(camera_yaw)) * cos(glm::radians(camera_pitch)),
             sin(glm::radians(camera_pitch)),
             sin(glm::radians(camera_yaw)) * cos(glm::radians(camera_pitch))));
+        camera_right = glm::normalize(glm::cross(world_up, camera_forward));
+        camera_up = glm::normalize(glm::cross(camera_right, camera_forward));
 
-        cameraRight = glm::normalize(glm::cross(up, cameraForward));
-        cameraUp = glm::normalize(glm::cross(cameraRight, cameraForward));
-        //cameraPos += input.horizontal * cameraRight * delta * 10.f;
-
-        view = glm::lookAt(cameraPos, cameraPos + cameraForward, cameraUp);
+        view = glm::lookAt(camera_pos, camera_pos + camera_forward, camera_up);
         projection = glm::perspective(glm::radians(fov), (float)view_width / (float)view_height, 0.1f, 100.0f);
 
-        texture_shader.use();
-        texture_shader.setFloat("mixValue", mix_value);
-        //texture_shader.setUniformMat4fv("model", 1, false, model);
-        texture_shader.setUniformMat4fv("view", 1, false, view);
-        texture_shader.setUniformMat4fv("projection", 1, false, projection);
+        //monkey
+        model = glm::mat4(1.0f);
+        model = glm::rotate(model, glm::radians(180.f), glm::vec3(0.0f, 0.0f, 1.0f));
+        model = glm::translate(model, glm::vec3(0,-1,0));
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));
 
-        glBindVertexArray(VAO);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        monkey_shader.use();
+        monkey_shader.set_uniform_mat4fv("model", 1, false, model);
+        monkey_shader.set_uniform_mat4fv("view", 1, false, view);
+        monkey_shader.set_uniform_mat4fv("projection", 1, false, projection);
+        monkey_shader.set_vec3("lightPos", lightPos);
+        monkey_shader.set_vec3("viewPos", camera_pos);
+        monkey_shader.set_float("time", time);
+        our_model.Draw(monkey_shader);
 
-        for (unsigned int i = 0; i < 10; i++)
-        {
-            glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
-            float angle = 20.0f * i;
-            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-            texture_shader.setUniformMat4fv("model", 1, false, model);
+        //lightsource
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
 
-            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
+        light_source_shader.use();
+        light_source_shader.set_uniform_mat4fv("model", 1, false, model);
+        light_source_shader.set_uniform_mat4fv("view", 1, false, view);
+        light_source_shader.set_uniform_mat4fv("projection", 1, false, projection);
+        our_model.Draw(light_source_shader);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
     return 0;
-}
-
-const auto key = glfwGetKey;
-void processInput(GLFWwindow* window, Input& input)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    input.vertical = (key(window, forward_keys[0]) | key(window, forward_keys[1])) - (key(window, back_keys[0]) | key(window, back_keys[1]));
-    input.horizontal = (key(window, right_keys[0]) | key(window, right_keys[1])) - (key(window, left_keys[0]) | key(window, left_keys[1]));
 }

@@ -17,9 +17,11 @@ public:
     // use/activate the shader
     void use();
     // utility uniform functions
-    void setBool(const std::string& name, bool value) const;
-    void setInt(const std::string& name, int value) const;
-    void setFloat(const std::string& name, float value) const;
-    void setVec4(const std::string& name, float x, float y, float z, float w) const;
-    void setUniformMat4fv(const std::string& name, int count, bool transpose, const glm::mat4& value) const;
+    void set_bool(const std::string& name, bool value) const;
+    void set_int(const std::string& name, int value) const;
+    void set_float(const std::string& name, float value) const;
+    void set_vec4(const std::string& name, float x, float y, float z, float w) const;
+    void set_vec3(const std::string& name, float x, float y, float z) const;
+    void set_vec3(const std::string& name, const glm::vec3& vec) const;
+    void set_uniform_mat4fv(const std::string& name, int count, bool transpose, const glm::mat4& value) const;
 };
